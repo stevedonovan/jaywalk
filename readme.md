@@ -6,6 +6,8 @@ Creating command-line programs without fuss can be a pain in any language. If pa
 
 Jaywalk's `Commandlet` is one solution to the problem. We define a class where any public fields are flags, and any public methods are commands. Items can be marked with `Help` attributes, which allows simple help auto-generation:
 
+    import org.jaywalk.*;
+
     @Help("Demonstrating a simple command-line framework")
     public class SimpleCommand extends Commandlet {
         @Help("scale factor")
@@ -39,14 +41,14 @@ Invocation of this program looks like this:
 
 Of course, there is nothing new under the Sun, and I subsequently discovered a little framework called [Cliche](http://code.google.com/p/cliche/wiki/Manual) which does something very similar, except for interactive sessions. This seemed like a good idea, so I taught `Commandlet` an interactive mode:
 
-$> java SimpleCommand -i
-? mul 20 43
-860.0
-? add 2 3
-5.0
-? add -scale 2 2 3
-10.0
-?
+    $> java SimpleCommand -i
+    ? mul 20 43
+    860.0
+    ? add 2 3
+    5.0
+    ? add -scale 2 2 3
+    10.0
+    ?
 
 `Commandlet` knows about input and output text files, which is useful for people like me who can never remember how to open text files in Java:
 
@@ -103,3 +105,50 @@ Simularly, you gain control over output by defining 'stringifiers'
 
 Here it's the first argument type that must match the output type, and the return value must be a string. As with Converters, the actual name of the method is not important.
 
+### A little JSON Web service
+
+The emphasis is converting output in a form useful to humans, but other general formats are also useful.
+
+    import org.jaywalk.*;
+
+    public class JsonTest extends MiniJsonServer {
+
+        public String alice;
+        public int n;
+
+
+        // Passing parameters as fields
+        public Json one() {
+            return J("alice",alice,"n",n);
+        }
+
+        public Json whoareyou() {
+            return J("name",System.getProperty("user.name"));
+        }
+
+        // Passing parameters as named arguments
+        public Json add (
+            @Param("x") double x,
+            @Param("y") double y
+        ) {
+            return J("result",x+y);
+        }
+
+        // you need to override this method if passing parameters as flags,
+        // to reset between invocations.
+        protected void resetFields() {
+            alice = null;
+            n = 0;
+        }
+
+        public static void main(String[] args) {
+            new JsonTest().run(5557);
+        }
+
+    }
+
+The JSON 'constructor' `J` generates an equivalent Java data structure, so that `J("alice",alice,"n",n)` generates `{"alice":<string>,"n":<number>}` when converted into JSON.
+
+The invocation is simply '/one?alice=hello&n=2' and is mapped onto `one -alice hello -n 2` which is processed as before by `Commandlet`.
+
+See [my article](http://steved-imaginaryreal.blogspot.com/2011/08/enjoying-java-again.html) for more details.
